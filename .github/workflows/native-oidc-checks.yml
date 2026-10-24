@@ -25,10 +25,10 @@ jobs:
           - go-unit-tests
           - golangci-lint
     steps:
-      - name: Checkout published feature branch
+      - name: Checkout native OIDC fixes
         uses: actions/checkout@v5
         with:
-          ref: feature/native-oidc-login
+          ref: ci/native-oidc-fixes
           persist-credentials: false
       - name: Show tested commit
         run: git log -1 --format='%H %s'
