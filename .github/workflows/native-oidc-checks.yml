@@ -1,0 +1,45 @@
+name: Native OIDC macOS checks
+
+on:
+  push:
+    branches:
+      - ci/native-oidc-checks
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    if: github.repository == 'diferhe/niks3'
+    name: checks.aarch64-darwin.${{ matrix.check }}
+    runs-on: macos-14
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        check:
+          - go-unit-tests
+          - golangci-lint
+    steps:
+      - name: Checkout published feature branch
+        uses: actions/checkout@v5
+        with:
+          ref: feature/native-oidc-login
+          persist-credentials: false
+      - name: Show tested commit
+        run: git log -1 --format='%H %s'
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          extra_nix_config: |
+            extra-substituters = https://cache.thalheim.io
+            extra-trusted-public-keys = cache.thalheim.io-1:R7msbosLEZKrxk/lKxf9BTjOOH7Ax3H0Qj0/6wiHOgc=
+      - name: Run Nix check
+        run: >-
+          nix build --no-link --print-build-logs --cores 3 --max-jobs 2
+          .#checks.aarch64-darwin.${{ matrix.check }}
