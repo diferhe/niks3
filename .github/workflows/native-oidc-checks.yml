@@ -43,3 +43,15 @@ jobs:
         run: >-
           nix build --no-link --print-build-logs --cores 3 --max-jobs 2
           .#checks.aarch64-darwin.${{ matrix.check }}
+      - name: Test real macOS Keychain storage
+        if: matrix.check == 'go-unit-tests'
+        run: |
+          keychain_path="$RUNNER_TEMP/niks3-test.keychain-db"
+          /usr/bin/security create-keychain -p synthetic-test-password "$keychain_path"
+          trap '/usr/bin/security delete-keychain "$keychain_path"' EXIT
+          /usr/bin/security unlock-keychain -p synthetic-test-password "$keychain_path"
+          /usr/bin/security list-keychains -d user -s "$keychain_path"
+          /usr/bin/security default-keychain -d user -s "$keychain_path"
+          tests=$(nix build --no-link --print-out-paths --cores 3 --max-jobs 2 .#niks3-tests)
+          NIKS3_TEST_MACOS_KEYCHAIN=1 "$tests/bin/niks3-client-oidclogin.test" \
+            -test.v -test.run '^TestMacOSKeychainIntegration$'
